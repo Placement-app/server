@@ -1,8 +1,45 @@
 const express = require("express");
 const AR = express.Router();
 const AM = require("../model/AdminSchema");
+const CM = require("../model/ClubSchema");
+const RM = require("../model/ResourceSchema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+
+const logo = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "Resources/logo/"); // Destination folder for uploaded files
+    },
+    filename: function (req, file, cb) {
+      cb(
+        null,
+        file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+      );
+    },
+  }),
+});
+AR.use("/clublogo", express.static(path.join(__dirname, "../Resources/logo/")));
+
+const verification = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "Resources/verification/"); // Destination folder for uploaded files
+    },
+    filename: function (req, file, cb) {
+      cb(
+        null,
+        file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+      );
+    },
+  }),
+});
+AR.use(
+  "/clubverificationdocs",
+  express.static(path.join(__dirname, "../Resources/verification/"))
+);
 
 AR.post("/signup", async (req, res) => {
   try {
@@ -41,7 +78,7 @@ AR.post("/signup", async (req, res) => {
               res.cookie("AAUAT", token, {
                 httpOnly: true,
                 secure: true,
-                sameSite: "lax"
+                sameSite: "lax",
               });
               res.json({ msg: { token } });
             } else {
@@ -52,6 +89,7 @@ AR.post("/signup", async (req, res) => {
       }
     }
   } catch (error) {
+    console.log(error);
     res.json({ msg: "Something went wrong!" });
   }
 });
@@ -82,7 +120,7 @@ AR.post("/login", async (req, res) => {
               { expiresIn: 10 * 24 * 60 * 60 }
             );
             res.cookie("AAUAT", token, { httpOnly: true });
-            res.json({ msg: {token } });
+            res.json({ msg: { token } });
           } else {
             res.json({ msg: "Email or Password is wrong!" });
           }
@@ -114,4 +152,108 @@ AR.post("/protected", (req, res) => {
   });
 });
 
+AR.post("/addclub", async (req, res) => {
+  try {
+    const { name, email, founder, about, statement,logo,docs } = req.body;
+    if (
+      name == "" ||
+      founder == "" ||
+      email == "" ||
+      about == "" ||
+      statement == ""||
+      logo == "" || docs == ""
+    ) {
+      res.json({ msg: "Please fill all the fields" });
+    } else {
+      const findbyEmail = await CM.findOne({ email });
+      if (!findbyEmail) {
+        bcrypt.genSalt(Number(process.env.SaltNo), async (err, salt) => {
+          if (err) {
+            console.log(err);
+            return res.status(500).json({ msg: "Something went wrong!" });
+          } else {
+            const val = email + new Date().getTime();
+            const combinedSalt = `${salt}${process.env.Salt}`;
+            const hashedPassword = await bcrypt.hash(val, combinedSalt);
+            const user = await CM.create({
+              name,
+              email,
+              founder,
+              about,
+              statement,
+              password: hashedPassword,
+              cid: val,
+              logo,docs
+              
+            });
+            if (user) {
+             
+              res.json({ msg:{id:val,created:true} });
+            } else {
+              res.json({ msg: "Something went wrong!" });
+            }
+          }
+        });
+      } else {
+        res.json({ msg: "club not created" });
+      }
+    }
+  } catch (error) {
+    res.json({ msg: "Something went wrong!" });
+  }
+});
+
+AR.post("/clublogo",logo.single('logo'),async(req,res)=>{
+  try {
+    console.log(req.file);
+    if(!req.file){
+      res.json({msg:"No file uploaded."})
+    }else{
+      res.json({msg:"Done",path:req.file.filename})
+    }
+    
+  } catch (error) {
+    res.json({msg:"SMO"})
+  }
+})
+
+AR.post("/clubverificationdocs",verification.single('verification'),async(req,res)=>{
+  try {
+    if(!req.file){
+      res.json({msg:"No file uploaded."})
+    }else{
+      res.json({msg:"Done",path:req.file.filename})
+    }
+    
+  } catch (error) {
+    res.json({msg:"SMO"})
+  }
+})
+
+AR.get("/clubs",async(req,res)=>{
+  try {
+      const send = await CM.find()
+      res.json({msg:send})
+  } catch (error) {
+    res.json({msg:"SMO"})
+  }
+})
+
+AR.get("/carousel_approval",async(req,res)=>{
+  try {
+    res.json({msg:  await RM.find()})
+  } catch (error) {
+    res.json({msg:"SMO"})
+  }
+})
+AR.post("/serachclubs",async(req,res)=>{
+  try {
+    const {cid} = req.body
+    console.log(cid);
+      const send = await CM.findOne({cid:cid})
+      res.json({msg:send})
+  } catch (error) {
+    res.json({msg:"SMO"})
+  }
+})
 module.exports = AR;
