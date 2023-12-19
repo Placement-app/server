@@ -1,32 +1,37 @@
 const mongoose = require("mongoose");
 
 const ResourecSchema = new mongoose.Schema({
+
   carousel: [
     {
-      img: { type: String },
-      content: { type: String },
-      price: { type: Number },
       cid: { type: String },
-      approved: { type: Boolean },
-      logo: { type: String },
       name: { type: String },
       founder: { type: String },
-    },
+      logo: { type: String },
+      data: {
+        img: { type: String },
+        content: { type: String },
+        approved: { type: String }
+      }
+    }
   ],
-  news: [
+  news: [{
+    head: { type: String },
+    content: { type: String },
+    date: { type: Date },
+    approved: { type: Boolean },
+  }],
+  trending: [{
+    head: { type: String },
+    content: { type: String },
+    approved: { type: Boolean },
+  }],
+  ApprovedCarousel:[
     {
-      head: { type: String },
-      content: { type: String },
-      date: { type: Date },
-      approved: { type: Boolean },
-    },
-  ],
-  trending: [
-    {
-      cid: { type: String },
-      approved: { type: Boolean },
-    },
-  ],
+      cid:{type:String},
+      img:{type:String},
+    }
+  ]
 });
 
 const RM = mongoose.model("resources", ResourecSchema);

@@ -7,6 +7,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
+const { Types } = require("mongoose");
 
 const logo = multer({
   storage: multer.diskStorage({
@@ -53,7 +54,6 @@ AR.post("/signup", async (req, res) => {
       } else {
         bcrypt.genSalt(Number(process.env.SaltNo), async (err, salt) => {
           if (err) {
-            console.log(err);
             return res.status(500).json({ msg: "Something went wrong!" });
           } else {
             const combinedSalt = `${salt}${process.env.Salt}`;
@@ -89,7 +89,6 @@ AR.post("/signup", async (req, res) => {
       }
     }
   } catch (error) {
-    console.log(error);
     res.json({ msg: "Something went wrong!" });
   }
 });
@@ -128,7 +127,6 @@ AR.post("/login", async (req, res) => {
       }
     }
   } catch (error) {
-    console.log(error);
     res.json({ msg: "Something went wrong!" });
   }
 });
@@ -152,25 +150,25 @@ AR.post("/protected", (req, res) => {
   });
 });
 
+
 AR.post("/addclub", async (req, res) => {
   try {
-    const { name, email, founder, about, statement,logo,docs } = req.body;
+    const { name, email, founder, about, statement, logo, docs } = req.body;
     if (
       name == "" ||
       founder == "" ||
       email == "" ||
       about == "" ||
-      statement == ""||
+      statement == "" ||
       logo == "" || docs == ""
     ) {
-      res.json({ msg: "Please fill all the fields" });
+      res.json({ msg: "Please fill all the fields", created: false });
     } else {
       const findbyEmail = await CM.findOne({ email });
       if (!findbyEmail) {
         bcrypt.genSalt(Number(process.env.SaltNo), async (err, salt) => {
           if (err) {
-            console.log(err);
-            return res.status(500).json({ msg: "Something went wrong!" });
+            return res.status(500).json({ msg: "Something went wrong!", created: false });
           } else {
             const val = email + new Date().getTime();
             const combinedSalt = `${salt}${process.env.Salt}`;
@@ -183,77 +181,160 @@ AR.post("/addclub", async (req, res) => {
               statement,
               password: hashedPassword,
               cid: val,
-              logo,docs
-              
+              logo, docs,
+              carousel: { img: "", content: "", approved: "" }
             });
             if (user) {
-             
-              res.json({ msg:{id:val,created:true} });
+
+              res.json({ msg: { id: val, created: true } });
             } else {
-              res.json({ msg: "Something went wrong!" });
+              res.json({ msg: "Something went wrong!", created: false });
             }
           }
         });
       } else {
-        res.json({ msg: "club not created" });
+        res.json({ msg: "Email already found!", created: false });
       }
     }
   } catch (error) {
-    res.json({ msg: "Something went wrong!" });
+    res.json({ msg: "Something went wrong!", created: false });
   }
 });
-
-AR.post("/clublogo",logo.single('logo'),async(req,res)=>{
+AR.post("/clublogo", logo.single('logo'), async (req, res) => {
   try {
-    console.log(req.file);
-    if(!req.file){
-      res.json({msg:"No file uploaded."})
-    }else{
-      res.json({msg:"Done",path:req.file.filename})
+    if (!req.file) {
+      res.json({ msg: "No file uploaded." })
+    } else {
+      res.json({ msg: "Done", path: req.file.filename })
     }
-    
+
   } catch (error) {
-    res.json({msg:"SMO"})
+    res.json({ msg: "SMO" })
   }
 })
-
-AR.post("/clubverificationdocs",verification.single('verification'),async(req,res)=>{
+AR.post("/clubverificationdocs", verification.single('verification'), async (req, res) => {
   try {
-    if(!req.file){
-      res.json({msg:"No file uploaded."})
-    }else{
-      res.json({msg:"Done",path:req.file.filename})
+    if (!req.file) {
+      res.json({ msg: "No file uploaded." })
+    } else {
+      res.json({ msg: "Done", path: req.file.filename })
     }
-    
+
   } catch (error) {
-    res.json({msg:"SMO"})
+    res.json({ msg: "SMO" })
   }
 })
 
-AR.get("/clubs",async(req,res)=>{
+AR.get("/clubs", async (req, res) => {
   try {
-      const send = await CM.find()
-      res.json({msg:send})
+    const send = await CM.find()
+    res.json({ msg: send })
   } catch (error) {
-    res.json({msg:"SMO"})
+    res.json({ msg: "SMO" })
+  }
+})
+AR.get("/carousel_approval", async (req, res) => {
+  try {
+    const send = await RM.findById("65800a8a9e7e237d51bbdc73")
+    res.json({ msg: send })
+  } catch (error) {
+    res.json({ msg: "SMO" })
+  }
+})
+AR.post("/serachclubs", async (req, res) => {
+  try {
+    const { cid } = req.body
+    const msg = await CM.findOne({ cid: cid })
+    res.json(msg)
+  } catch (error) {
+    res.json({ msg: "SMO" })
   }
 })
 
-AR.get("/carousel_approval",async(req,res)=>{
+AR.post("/approve_carousel", async (req, res) => {
   try {
-    res.json({msg:  await RM.find()})
+    const { cid, img, content } = req.body
+    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
+      carousel: {
+        img: img,
+        content: content, approved: "Approved"
+      }
+    })
+    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73") }, {
+      $pull: {
+        carousel: {
+          cid: cid
+        }
+      }
+    })
+    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") }, {
+      $push: {
+        ApprovedCarousel: {
+          cid: cid,
+          img,
+        }
+      }
+    })
+    if (UpdateCM && UpdateRM && UpdateApprovedCarousel) {
+      res.json({ msg: "Approved successfully.", approved: true })
+    } else {
+      res.json({ msg: "Something went wrong!", approved: false })
+    }
   } catch (error) {
-    res.json({msg:"SMO"})
+    res.json({ msg: "Something went wrong!", approved: false })
   }
 })
-AR.post("/serachclubs",async(req,res)=>{
+AR.get('/approved_carousels', async (req, res) => {
   try {
-    const {cid} = req.body
-    console.log(cid);
-      const send = await CM.findOne({cid:cid})
-      res.json({msg:send})
+
+    const data = await RM.findById({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") })
+    res.json(data.ApprovedCarousel)
   } catch (error) {
-    res.json({msg:"SMO"})
+    res.json({ msg: "Something went wrong!" })
+  }
+})
+AR.post("/remove_carousel", async (req, res) => {
+  try {
+    const { cid } = req.body
+    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
+      carousel: { img: null }
+    })
+    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") }, {
+      $pull: {
+        ApprovedCarousel: {
+          cid: cid
+        }
+      }
+    })
+    if (UpdateCM && UpdateApprovedCarousel) {
+      res.json({ msg: "Removed successfully.", removed: true })
+    } else {
+      res.json({ msg: "Something went wrong!", removed: false })
+    }
+  } catch (error) {
+    res.json({ msg: "Something went wrong!", removed: false })
+  }
+})
+AR.post("/decline_carousel", async (req, res) => {
+  try {
+    const { cid,img,content } = req.body
+    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
+      carousel: {img,content, approved: "Denied" }
+    })
+    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73") }, {
+      $pull: {
+        carousel: {
+          cid: cid
+        }
+      }
+    })
+    if (UpdateCM && UpdateRM) {
+      res.json({ msg: "Denied successfully.", denied: true })
+    } else {
+      res.json({ msg: "Something went wrong!", denied: false })
+    }
+  } catch (error) {
+    res.json({ msg: "Something went wrong!", denied: false })
   }
 })
 module.exports = AR;

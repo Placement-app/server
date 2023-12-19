@@ -1,8 +1,10 @@
 const express = require("express");
 const UR = express.Router();
 const UM = require("../model/UserSchema");
+const RM = require("../model/ResourceSchema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Types } = require("mongoose");
 
 UR.post("/signup", async (req, res) => {
   try {
@@ -113,5 +115,11 @@ UR.post("/protected", (req, res) => {
     });
   });
 });
+
+UR.get("/carousel",async(req,res)=>{
+  const find = await RM.findById(new Types.ObjectId("658034069e7e237d51bbdc97"))
+  console.log(find.ApprovedCarousel)
+  res.json({data:find.ApprovedCarousel})
+})
 
 module.exports = UR;

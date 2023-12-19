@@ -6,8 +6,8 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const AR = require("./Admin");
-const AM = require("../model/AdminSchema");
 const RM = require("../model/ResourceSchema");
+const  {Types}= require("mongoose")
 const slider = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
@@ -53,13 +53,13 @@ CR.post("/login", async (req, res) => {
                 about: findbyCid.about,
                 statement: findbyCid.statement,
                 cid: findbyCid.cid,
-                logo:findbyCid.logo
+                logo: findbyCid.logo
               },
               process.env.token,
               { expiresIn: 10 * 24 * 60 * 60 }
             );
             res.cookie("CAUAT", token, { httpOnly: true });
-            res.json({ msg: "Access granted", token });
+            res.status(200).json({ msg: "Access granted", token });
           } else {
             res.json({ msg: "Email or Password is wrong!" });
           }
@@ -95,32 +95,51 @@ CR.post("/protected", (req, res) => {
   });
 });
 
+
 CR.post("/addcarousel", async (req, res) => {
   try {
-    const { img, price, content,cid,logo,name,founder } = req.body;
-    if (img == "" || price == "" || content == "") {
-      res.json({ msg: "please fill alll the details!" });
+    const { img, content, cid, name, founder,logo } = req.body;
+    if (img == "" || content == "" || cid == "" || name == "" || founder == "") {
+      res.json({ msg: "please fill all the details!",created:false });
     } else {
-      const addResource = await RM.findByIdAndUpdate({_id:Object("655a24967e0b3129b893215b")},{
-        $push: { carousel: { img, price, content,cid:cid,approved:false,logo,name,founder } }
+      const  addResource = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73")},{
+        $push: {
+          carousel: {
+            cid: cid,
+            name: name,
+            founder: founder,
+            logo: logo,
+            data: {
+              img: img,
+              content: content,
+              approved: false
+            }
+          }
+        }
       })
-      const addClubAdmin = await CM.findOneAndUpdate({cid:cid},{carousel: { img, price, content,cid:cid,approved:false }})
-      if(addResource && addClubAdmin){
-        res.json({msg:"Done"})
-      }else{
-        res.json({msg:"Not Done"})
+      const addClubAdmin = await CM.findOneAndUpdate({ cid: cid }, { carousel: { img, content, approved: "pending" } })
+      if (addResource && addClubAdmin) {
+        res.json({ msg: "Request sent successfully.",created:true })
+      } else {
+        res.json({ msg: "Something went wrong!",created:false })
       }
-
     }
   } catch (error) {
     console.log(error);
     res.json({ msg: "SMO" });
   }
 });
-
+CR.post("/verify_carousel",async(req,res)=>{
+  try {
+      const {cid}=req.body
+      const data = await CM.findOne({cid:cid})
+      res.json(data)
+    } catch (error) {
+        res.json({msg:"Something went wrong!"})
+    }
+})
 CR.post("/uploadcarousel", slider.single("carousel"), async (req, res) => {
   try {
-    console.log(req.file);
     if (!req.file) {
       res.json({ msg: "No file uploaded." });
     } else {
@@ -128,6 +147,19 @@ CR.post("/uploadcarousel", slider.single("carousel"), async (req, res) => {
     }
   } catch (error) {
     res.json({ msg: "SMO" });
+  }
+});
+CR.post("/remove_carousel", async (req, res) => {
+  try {
+    const { cid } = req.body;
+      const addClubAdmin = await CM.findOneAndUpdate({ cid: cid }, { carousel: { img:null} })
+      if (addClubAdmin) {
+        res.json({ msg: "Removed successfully try again.",removed:true })
+      } else {
+        res.json({ msg: "Something went wrong!",removed:false })
+      }
+  } catch (error) {
+    res.json({ msg: "Something went wrong!",removed:false });
   }
 });
 module.exports = CR;

@@ -16,9 +16,7 @@ const ClubSchema = new mongoose.Schema({
   carousel: {
     img: { type: String },
     content: { type: String },
-    price: { type: Number },
-    cid: { type: String },
-    approved: { type: Boolean },
+    approved: { type: String },
   },
 });
 
