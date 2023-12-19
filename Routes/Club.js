@@ -102,7 +102,7 @@ CR.post("/addcarousel", async (req, res) => {
     if (img == "" || content == "" || cid == "" || name == "" || founder == "") {
       res.json({ msg: "please fill all the details!",created:false });
     } else {
-      const  addResource = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73")},{
+      const  addResource = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("6581a4c014f4c02b6f32ab00")},{
         $push: {
           carousel: {
             cid: cid,

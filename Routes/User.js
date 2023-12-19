@@ -117,8 +117,8 @@ UR.post("/protected", (req, res) => {
 });
 
 UR.get("/carousel",async(req,res)=>{
-  const find = await RM.findById(new Types.ObjectId("658034069e7e237d51bbdc97"))
-  console.log(find.ApprovedCarousel)
+  const find = await RM.findOne({_id:"6581a4e414f4c02b6f32ab01"})
+  console.log(find)
   res.json({data:find.ApprovedCarousel})
 })
 

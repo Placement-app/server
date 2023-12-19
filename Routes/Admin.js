@@ -182,7 +182,7 @@ AR.post("/addclub", async (req, res) => {
               password: hashedPassword,
               cid: val,
               logo, docs,
-              carousel: { img: "", content: "", approved: "" }
+              carousel: { img: null, content: "", approved: "" }
             });
             if (user) {
 
@@ -235,7 +235,7 @@ AR.get("/clubs", async (req, res) => {
 })
 AR.get("/carousel_approval", async (req, res) => {
   try {
-    const send = await RM.findById("65800a8a9e7e237d51bbdc73")
+    const send = await RM.findById("6581a4c014f4c02b6f32ab00")
     res.json({ msg: send })
   } catch (error) {
     res.json({ msg: "SMO" })
@@ -260,14 +260,14 @@ AR.post("/approve_carousel", async (req, res) => {
         content: content, approved: "Approved"
       }
     })
-    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73") }, {
+    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("6581a4c014f4c02b6f32ab00") }, {
       $pull: {
         carousel: {
           cid: cid
         }
       }
     })
-    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") }, {
+    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("6581a4e414f4c02b6f32ab01") }, {
       $push: {
         ApprovedCarousel: {
           cid: cid,
@@ -287,7 +287,7 @@ AR.post("/approve_carousel", async (req, res) => {
 AR.get('/approved_carousels', async (req, res) => {
   try {
 
-    const data = await RM.findById({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") })
+    const data = await RM.findById({ _id: new Types.ObjectId("6581a4e414f4c02b6f32ab01") })
     res.json(data.ApprovedCarousel)
   } catch (error) {
     res.json({ msg: "Something went wrong!" })
@@ -299,7 +299,7 @@ AR.post("/remove_carousel", async (req, res) => {
     const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
       carousel: { img: null }
     })
-    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("658034069e7e237d51bbdc97") }, {
+    const UpdateApprovedCarousel = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("6581a4e414f4c02b6f32ab01") }, {
       $pull: {
         ApprovedCarousel: {
           cid: cid
@@ -321,7 +321,7 @@ AR.post("/decline_carousel", async (req, res) => {
     const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
       carousel: {img,content, approved: "Denied" }
     })
-    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("65800a8a9e7e237d51bbdc73") }, {
+    const UpdateRM = await RM.findByIdAndUpdate({ _id: new Types.ObjectId("6581a4c014f4c02b6f32ab00") }, {
       $pull: {
         carousel: {
           cid: cid
