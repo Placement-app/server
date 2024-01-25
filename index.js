@@ -20,9 +20,6 @@ app.get("/",(req,res)=>{
     res.send("server is up and running...")
 })
 
-app.get("/data",(req,res)=>{
-    res.send("It's working fine")
-})
 
 app.listen(process.env.PORT || 5000,(e)=>{
     console.log("Server is up and runnig");

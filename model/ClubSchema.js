@@ -18,6 +18,23 @@ const ClubSchema = new mongoose.Schema({
     content: { type: String },
     approved: { type: String },
   },
+  news: {
+    head: { type: String },
+    description: { type: String },
+    content: { type: String },
+    approved: { type: String },
+    date: { type: Date },
+  },
+  status: { type: Boolean },
+  event: {
+    timeStart: { type: String },
+    timeEnd: { type: String },
+    title: { type: String },
+    description: { type: String },
+    content: { type: String },
+    approved: { type: String },
+    link: { type: String }
+  }
 });
 
 const CM = mongoose.model("club", ClubSchema);

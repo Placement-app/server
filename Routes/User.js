@@ -5,6 +5,8 @@ const RM = require("../model/ResourceSchema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Types } = require("mongoose");
+const AM = require("../model/AdminSchema");
+const CM = require("../model/ClubSchema");
 
 UR.post("/signup", async (req, res) => {
   try {
@@ -84,7 +86,7 @@ UR.post("/login", async (req, res) => {
               { expiresIn: 10 * 24 * 60 * 60 }
             );
             res.cookie("PAUAT", token, { httpOnly: true });
-            res.json({ msg: {token } });
+            res.json({ msg: { token } });
           } else {
             res.json({ msg: "Email or Password is wrong!" });
           }
@@ -116,10 +118,37 @@ UR.post("/protected", (req, res) => {
   });
 });
 
-UR.get("/carousel",async(req,res)=>{
-  const find = await RM.findOne({_id:"6581a4e414f4c02b6f32ab01"})
-  console.log(find)
-  res.json({data:find.ApprovedCarousel})
+UR.get("/carousel", async (req, res) => {
+  const find = await AM.findById({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") })
+  let carousel = []
+  find.carousel.map((e, i) => {
+    e.position !== 0 ? carousel.push(e) : null
+  })
+
+  carousel.sort((a, b) => a.position - b.position)
+  res.json({ data: carousel })
+})
+
+UR.get("/news", async (req, res) => {
+  const find = await AM.findById({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") })
+  let news = []
+  find.news.map((e, i) => {
+    e.position !== 0 ? news.push(e) : null
+  })
+
+  news.sort((a, b) => a.position - b.position)
+  console.log(find);
+  res.json({ data: news })
+})
+
+UR.get("/clubs", async (req, res) => {
+  try {
+    const find = await CM.find()
+    console.log(find);
+    res.json({ data: find })
+  } catch (error) {
+    res.json({ data: "Something went wrong!" })
+  }
 })
 
 module.exports = UR;
