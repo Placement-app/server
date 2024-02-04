@@ -25,7 +25,6 @@ const ClubSchema = new mongoose.Schema({
     approved: { type: String },
     date: { type: Date },
   },
-  status: { type: Boolean },
   event: {
     timeStart: { type: String },
     timeEnd: { type: String },
@@ -34,7 +33,20 @@ const ClubSchema = new mongoose.Schema({
     content: { type: String },
     approved: { type: String },
     link: { type: String }
-  }
+  },
+  allnews: [{
+    head: { type: String },
+    description: { type: String },
+    content: { type: String },
+    approved: { type: String },
+    date: { type: Date },
+  }],
+  members:[{
+    userId:{type:String},
+    status:{type:String},
+    roll:{type:String}
+  }],
+  status: { type: Boolean },
 });
 
 const CM = mongoose.model("club", ClubSchema);

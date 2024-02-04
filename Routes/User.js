@@ -1,7 +1,6 @@
 const express = require("express");
 const UR = express.Router();
 const UM = require("../model/UserSchema");
-const RM = require("../model/ResourceSchema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Types } = require("mongoose");
@@ -94,7 +93,6 @@ UR.post("/login", async (req, res) => {
       }
     }
   } catch (error) {
-    console.log(error);
     res.json({ msg: "Something went wrong!" });
   }
 });
@@ -104,17 +102,24 @@ UR.post("/protected", (req, res) => {
   if (!token) {
     return res.status(401).json({ msg: "Unauthorized" });
   }
-  jwt.verify(token, process.env.token, (err, decoded) => {
-    if (err) {
+  jwt.verify(token, process.env.token, async (err, decoded) => {
+    try {
+
+      if (err) {
+        return res.status(403).json({ msg: "Token validation failed" });
+      }
+      const user = await UM.findOne({ _id: decoded.id });
+      if (user) {
+        res.json({
+          msg: "Access granted",
+          data: user
+        });
+      } else {
+        return res.status(403).json({ msg: "User not found!" });
+      }
+    } catch (error) {
       return res.status(403).json({ msg: "Token validation failed" });
     }
-    res.json({
-      msg: "Access granted",
-      name: decoded.name,
-      id: decoded._id,
-      regno: decoded.regno,
-      email: decoded.email,
-    });
   });
 });
 
@@ -129,26 +134,42 @@ UR.get("/carousel", async (req, res) => {
   res.json({ data: carousel })
 })
 
-UR.get("/news", async (req, res) => {
-  const find = await AM.findById({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") })
-  let news = []
-  find.news.map((e, i) => {
-    e.position !== 0 ? news.push(e) : null
-  })
-
-  news.sort((a, b) => a.position - b.position)
-  console.log(find);
-  res.json({ data: news })
+UR.get("/all", async (req, res) => {
+  const carousels = await CM.find({ "carousel.approved": "Approved" })
+  const events = await CM.find({ "event.approved": "Approved" })
+  const news = await CM.find({ "news.approved": "Approved" })
+  const clubs = await CM.find()
+  res.json({ carousels, events, news, clubs })
 })
 
-UR.get("/clubs", async (req, res) => {
+UR.post("/joinclub", async (req, res) => {
   try {
-    const find = await CM.find()
-    console.log(find);
-    res.json({ data: find })
+    const { cid, userId } = req.body
+    console.log(userId);
+    const club = await CM.updateOne({ cid }, {
+      $push: {
+        members: {
+          userId,
+          status: "Requested"
+        }
+      }
+    })
+    const user = await UM.updateOne({ _id: new Types.ObjectId(userId) }, {
+      $push: {
+        clubs: {
+          cid,
+          status: "Requested"
+        }
+      }
+    })
+    if (club && user) {
+      res.json({ msg: "Requested successfully", update: true })
+    } else {
+      res.json({ msg: "Something went wrong!", update: false })
+    }
   } catch (error) {
-    res.json({ data: "Something went wrong!" })
+    console.log(error);
+    res.json({ msg: "Something went wrong!", update: false })
   }
 })
-
 module.exports = UR;

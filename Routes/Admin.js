@@ -2,7 +2,6 @@ const express = require("express");
 const AR = express.Router();
 const AM = require("../model/AdminSchema");
 const CM = require("../model/ClubSchema");
-const RM = require("../model/ResourceSchema");
 const path = require("path");
 const fs = require('fs');
 const bcrypt = require("bcrypt");
@@ -138,6 +137,7 @@ AR.post("/protected", (req, res) => {
     return res.status(401).json({ msg: "Unauthorized" });
   }
   jwt.verify(token, process.env.token, (err, decoded) => {
+    console.log(decoded);
     if (err) {
       return res.status(403).json({ msg: "Token validation failed" });
     }
@@ -324,19 +324,27 @@ AR.get("/carousel_approval", async (req, res) => {
 })
 AR.post("/approve_carousel", async (req, res) => {
   try {
-    const { cid, img, content, position } = req.body
+    const { cid, position } = req.body
+    const FindAM = await AM.findOne({ _id: "659c1a2211919f5bfb0a84e6" })
+    let Found = false
+    const TotalPositionsOccupied = [...new Set(FindAM.carousel.map(e => e.position))]
+    TotalPositionsOccupied.map(e => e == position ? Found = true : false)
+
     const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
-      carousel: {
-        img: img,
-        content: content, approved: "Approved"
-      }
+      $set: { "carousel.approved": "Approved" }
     })
     const UpdateAM = await AM.findOneAndUpdate({ _id: "659c1a2211919f5bfb0a84e6", "carousel.cid": cid },
       {
         $set: { "carousel.$.approved": true, "carousel.$.position": position }
       },)
+      console.log(Found);
     if (UpdateCM && UpdateAM) {
-      res.json({ msg: "Approved successfully.", approved: true })
+      if (Found) {
+        console.log(UpdateCM && UpdateAM);
+        res.json({ approved: false, change: true })
+      } else {
+        res.json({ msg: "Approved successfully.", approved: true })
+      }
     } else {
       res.json({ msg: "Something went wrong!", approved: false })
     }
@@ -344,33 +352,11 @@ AR.post("/approve_carousel", async (req, res) => {
     res.json({ msg: "Something went wrong!", approved: false })
   }
 })
-AR.post("/remove_carousel", async (req, res) => {
-  try {
-    const { cid, img, content } = req.body
-    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
-      carousel: { img, content, approved: "Timeup" }
-    })
-    const UpdateApprovedCarousel = await AM.findByIdAndUpdate({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") }, {
-      $pull: {
-        carousel: {
-          cid: cid
-        }
-      }
-    })
-    if (UpdateCM && UpdateApprovedCarousel) {
-      res.json({ msg: "Removed successfully.", removed: true })
-    } else {
-      res.json({ msg: "Already removed", removed: false })
-    }
-  } catch (error) {
-    res.json({ msg: "Something went wrong!", removed: false })
-  }
-})
 AR.post("/decline_carousel", async (req, res) => {
   try {
-    const { cid, img, content } = req.body
+    const { cid,remove } = req.body
     const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
-      carousel: { img, content, approved: "Denied" }
+      $set: { "carousel.approved": remove?"Time Up":"Denied" }
     })
     const UpdateAM = await AM.findByIdAndUpdate({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") }, {
       $pull: {
@@ -380,12 +366,12 @@ AR.post("/decline_carousel", async (req, res) => {
       }
     })
     if (UpdateCM && UpdateAM) {
-      res.json({ msg: "Denied successfully.", denied: true })
+      res.json({ msg: remove?"Removed successfully.":"Denied successfully.", updated: true })
     } else {
-      res.json({ msg: "Something went wrong!", denied: false })
+      res.json({ msg: "Something went wrong!", updated: false })
     }
   } catch (error) {
-    res.json({ msg: "Something went wrong!", denied: false })
+    res.json({ msg: "Something went wrong!", updated: false })
   }
 })
 AR.post("/change_carousel", async (req, res) => {
@@ -449,31 +435,38 @@ AR.get("/news_approval", async (req, res) => {
 })
 AR.post("/approve_news", async (req, res) => {
   try {
-    const { cid, link, head, description, content, position } = req.body
-    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
-      news: {
-        link, head, description,
-        content: content, approved: "Approved"
-      }
+    const { cid, position } = req.body
+    const FindAM = await AM.findOne({ _id: "659c1a2211919f5bfb0a84e6" })
+    let Found = false
+    const TotalPositionsOccupied = [...new Set(FindAM.news.map(e => e.position))]
+    TotalPositionsOccupied.map(e => e == position ? Found = true : false)
+
+    const UpdateCM = await CM.updateOne({ cid: cid }, {
+      $set: { "news.approved": "Approved" }
     })
     const UpdateAM = await AM.findOneAndUpdate({ _id: "659c1a2211919f5bfb0a84e6", "news.cid": cid },
       {
-        $set: { "news.$.approved": true, "news.$.position": position }
+        $set: { "news.$.approved": true, "news.$.position": Found ? 0 : position }
       },)
     if (UpdateCM && UpdateAM) {
-      res.json({ msg: "Approved successfully.", approved: true })
+      if (Found) {
+        res.json({ approved: false, change: true })
+      } else {
+        res.json({ msg: "Approved successfully.", approved: true })
+      }
     } else {
       res.json({ msg: "Something went wrong!", approved: false })
     }
+
   } catch (error) {
     res.json({ msg: "Something went wrong!", approved: false })
   }
 })
 AR.post("/decline_news", async (req, res) => {
   try {
-    const { cid, head, description, link, content, removed } = req.body
-    const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
-      news: { head, description, link, content, approved: removed ? "Time Up" : "Denied" }
+    const { cid, removed } = req.body
+    const UpdateCM = await CM.updateOne({ cid: cid }, {
+      $set: { "news.approved": removed ? "Time Up" : "Denied" }
     })
     const UpdateAM = await AM.findByIdAndUpdate({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") }, {
       $pull: {
@@ -496,7 +489,7 @@ AR.post("/change_news", async (req, res) => {
     const { cid, position, option, proceed } = req.body
     const FindAM = await AM.findOne({ _id: "659c1a2211919f5bfb0a84e6" })
     let Found = false
-    const TotalPositionsOccupied = [...new Set(FindAM.carousel.map(e => e.position))]
+    const TotalPositionsOccupied = [...new Set(FindAM.news.map(e => e.position))]
     TotalPositionsOccupied.map(e => e == position ? Found = true : false)
 
     const common = async () => {
@@ -553,10 +546,10 @@ AR.get("/events_approval", async (req, res) => {
 })
 AR.post("/approve_events", async (req, res) => {
   try {
-    const { cid, link, title, description, content,timeStart,timeEnd } = req.body
+    const { cid, link, title, description, content, timeStart, timeEnd } = req.body
     const UpdateCM = await CM.findOneAndUpdate({ cid: cid }, {
       event: {
-        link, title, description,timeStart,timeEnd,
+        link, title, description, timeStart, timeEnd,
         content, approved: "Approved"
       }
     })

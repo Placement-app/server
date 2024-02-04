@@ -9,8 +9,6 @@ const AdminSchema = new mongoose.Schema({
         {
             cid: { type: String },
             name: { type: String },
-            founder: { type: String },
-            logo: { type: String },
             img: { type: String },
             content: { type: String },
             approved: { type: Boolean },
@@ -21,8 +19,6 @@ const AdminSchema = new mongoose.Schema({
     news: [{
         cid: { type: String },
         name: { type: String },
-        founder: { type: String },
-        logo: { type: String },
         head: { type: String },
         content: { type: String },
         description: { type: String },

@@ -5,11 +5,10 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const fs = require('fs');
-const AR = require("./Admin");
 const { Types } = require("mongoose");
-const RM = require("../model/ResourceSchema");
 const AM = require("../model/AdminSchema");
 const CM = require("../model/ClubSchema");
+const UM = require("../model/UserSchema");
 const slider = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
@@ -111,8 +110,8 @@ CR.post("/protected", async (req, res) => {
 // Carousel
 CR.post("/addcarousel", async (req, res) => {
   try {
-    const { img, content, cid, name, founder, logo, link } = req.body;
-    if (img == "" || content == "" || cid == "" || name == "" || founder == "") {
+    const { img, content, cid, name, link } = req.body;
+    if (img == "" || content == "" || cid == "" || name == "") {
       res.json({ msg: "please fill all the details!", created: false });
     } else {
       const addAdmin = await AM.findByIdAndUpdate({ _id: new Types.ObjectId("659c1a2211919f5bfb0a84e6") }, {
@@ -120,8 +119,6 @@ CR.post("/addcarousel", async (req, res) => {
           carousel: {
             cid: cid,
             name: name,
-            founder: founder,
-            logo: logo,
             img: img,
             content: content,
             approved: false,
@@ -138,8 +135,7 @@ CR.post("/addcarousel", async (req, res) => {
       }
     }
   } catch (error) {
-    console.log(error);
-    res.json({ msg: "SMO" });
+    res.json({ msg: "Something went wrong!", created: false })
   }
 });
 CR.post("/verify_carousel", async (req, res) => {
@@ -186,8 +182,8 @@ CR.delete("/remove_carousel", async (req, res) => {
 //News
 CR.post("/addnews", async (req, res) => {
   try {
-    const { description, content, cid, name, founder, logo, link, head } = req.body;
-    if (description == "" || content == "" || cid == "" || name == "" || founder == "") {
+    const { description, content, cid, name, link, head } = req.body;
+    if (description == "" || content == "" || cid == "" || name == "") {
       res.json({ msg: "Please fill all the details!", created: false });
     } else {
       const date = new Date().toISOString()
@@ -196,8 +192,6 @@ CR.post("/addnews", async (req, res) => {
           news: {
             cid: cid,
             name: name,
-            founder: founder,
-            logo: logo,
             head: head,
             content: content,
             description: description,
@@ -246,7 +240,7 @@ CR.post("/remove_news", async (req, res) => {
 //Events
 CR.post("/addevent", async (req, res) => {
   try {
-    const { timeStart, timeEnd, title, description, content, cid, link, name, founder, logo } = req.body;
+    const { timeStart, timeEnd, title, description, content, cid, link, name } = req.body;
     if (timeStart == "" || timeEnd == "" || title == "" || description == "" || content == "" || cid == "") {
       res.json({ msg: "Please fill all the details!", created: false });
     } else {
@@ -305,4 +299,53 @@ CR.post("/remove_event", async (req, res) => {
     res.json({ msg: "Something went wrong!", removed: false });
   }
 });
+
+// Members
+CR.post("/members", async (req, res) => {
+  try {
+    const { cid } = req.body
+    const find = await CM.findOne({ cid })
+    res.json({ msg: "sent", data: find.members })
+  } catch (error) {
+    res.json({ msg: "Something went wrong!" })
+  }
+})
+CR.post("/user", async (req, res) => {
+  try {
+    const { userId } = req.body
+    const user = await UM.findOne({ _id: userId })
+    res.json({ data: user })
+  } catch (error) {
+    console.log(error);
+    res.json({ msg: "Something went wrong!" })
+  }
+})
+CR.post("/add", async (req, res) => {
+  try {
+    const { userId, cid } = req.body
+    console.log({ userId, cid });
+    const user = await UM.updateOne({ _id: userId, "clubs.cid": cid }, {
+      $set: {
+        "clubs.$.status": "Approved"
+      }
+    })
+    const club = await CM.updateOne({ cid, "members.userId": userId }, {
+      $set: {
+        "members.$.status": "Approved",
+        "members.$.roll": "Web developer",
+
+      }
+    })
+    console.log(club);
+
+    if (user && club) {
+      res.json({ msg: "Approved successfully", updated: true })
+    } else {
+      res.json({ msg: "Something went wrong!", updated: false })
+    }
+  } catch (error) {
+    console.log(error);
+    res.json({ msg: "Something went wrong!", updated: false })
+  }
+})
 module.exports = CR;
