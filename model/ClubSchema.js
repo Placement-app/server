@@ -23,7 +23,9 @@ const ClubSchema = new mongoose.Schema({
     description: { type: String },
     content: { type: String },
     approved: { type: String },
+    link: { type: String },
     date: { type: Date },
+
   },
   event: {
     timeStart: { type: String },

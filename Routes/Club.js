@@ -198,7 +198,7 @@ CR.post("/addnews", async (req, res) => {
             date: date,
             approved: false,
             position: 0,
-            link: link !== "" || link !== null ? link : null
+            link: link
           }
         }
       })
